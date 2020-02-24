@@ -13,19 +13,19 @@ def dns_resolver(hostname):
     # answer = "172.217.12.174"
 
     while dns_response.answer==[]:
-        ip = ""
+        ip = "198.41.0.4"
         additional = False
-        for a in dns_response.additional:
+        for a in dns_response.additional: # if there is an A type record in additional, get its IP address
             if a.rdtype==1:
                 ip = a[0].address
                 additional = True
                 break
 
-        if not additional:
+        if not additional: # if additional is empty, get a NS type record from authority
             for a in dns_response.authority:
                 if a.rdtype==2:
                     ns = str(a.items[0].target)
-                    ip = dns_resolver_helper(ns)
+                    ip = dns_resolver_helper(ns) # call dns_resolver_helper to resolve the IP address for next dns name server
                     break
 
         dns_response = dns.query.udp(dns_query, ip)
@@ -43,27 +43,22 @@ def dns_resolver(hostname):
     #     dns_response = dns_resolver_helper(cname)
     #     answer = dns_response.answer[0]
 
-    # query = dns_query
-    # response = dns_response
-    query_time = time.time() - start_time
+    query_time = time.time() - start_time # calculate query time
+    print("------------------------------")
     print("QUESTION SECTION:")
     print(dns_query.question[0])
     print()
     print("ANSWER SECTION:")
     print(dns_response.answer[0])
-    # print(answer)
     print()
     print("Query time: " + str(round(query_time*1000)) + " msec")
     print("WHEN: " + str(when))
-    print()
+    print("------------------------------")
     return query_time
 
 def dns_resolver_helper(hostname):
     dns_query = dns.message.make_query(hostname, "A")
-    dns_response = dns.query.udp(dns_query, "198.41.0.4")  # ask a root server to resolve google.com | return the IP address of a .com TLD server
-    # dns_response = dns.query.udp(dns_query, "192.5.6.30") # ask a .com TLD server to resolve | return the IP address of a authoritative server of google.com
-    # dns_response = dns.query.udp(dns_query, "216.239.34.10") # ask a google.com authoritative server for the IP address of google.com
-    # answer = "172.217.12.174"
+    dns_response = dns.query.udp(dns_query, "198.41.0.4")
 
     while dns_response.answer == []:
         ip = ""
@@ -75,23 +70,9 @@ def dns_resolver_helper(hostname):
 
     return dns_response.answer[0].items[0].address
 
-def experiment1(hostname):
-    total_query_time = 0
-    for i in range(10):
-        total_query_time+=dns_resolver(hostname)
-    return total_query_time/10
+print("Enter a hostname to resolve:")
+hostname = input()
+dns_resolver(hostname)
 
-dns_resolver("google.com")
-dns_resolver("youtube.com")
-dns_resolver("tmall.com")
-dns_resolver("baidu.com")
-dns_resolver("qq.com")
-dns_resolver("facebook.com")
-dns_resolver("sohu.com")
-dns_resolver("login.tmall.com")
-dns_resolver("taobao.com")
-dns_resolver("360.com")
-dns_resolver("google.co.jp")
-# dns_resolver("www.tmall.com.danuoyi.tbcache.com")
 
 
