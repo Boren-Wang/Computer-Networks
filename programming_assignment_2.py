@@ -1,4 +1,5 @@
 import dpkt.pcap
+import socket
 print("Enter the path of the pcap file to be parsed:")
 path = input()
 f = open('assignment2.pcap', 'rb')
@@ -49,7 +50,7 @@ for flow in ended_flows:
     count += 1
     sender = flow[0].sport
     receiver = flow[0].dport
-    print("Flow from "+str(sender)+" to "+str(receiver))
+    print("Flow from "+socket.inet_ntoa(flow[0].src)+":"+str(sender)+" to "+socket.inet_ntoa(flow[0].src)+":"+str(receiver))
     print()
     index_sender = 0
     index_receiver = 0
