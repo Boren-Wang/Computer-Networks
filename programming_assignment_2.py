@@ -2,8 +2,8 @@ import dpkt.pcap
 import socket
 print("Enter the path of the pcap file to be parsed:")
 path = input()
-f = open('assignment2.pcap', 'rb')
-# f = open(path, 'rb')
+# f = open('assignment2.pcap', 'rb')
+f = open(path, 'rb')
 pcap = dpkt.pcap.Reader(f)
 current_flows = {}
 ended_flows = []
@@ -154,20 +154,23 @@ for flow in ended_flows:
             continue
         if i==6:
             break
-        if tcp.sport == sender: # sender -> receiver
-            cwnd+=1
-        elif (tcp.ts - start_time)>=rtt:
+        if (tcp.ts - start_time)>=rtt:
             time_difference = tcp.ts - start_time
             print("Congestion window No." + str(i) + " is " + str(cwnd))
             i += 1
             cwnd = 0
             start_time = tcp.ts
             continue
+        else:
+            if tcp.sport == sender: # sender -> receiver
+                cwnd+=1
 
     # retransmission
     retransmission = 0
     seq_dict = {}
     for index, tcp in enumerate(flow):
+        if index<3:
+            continue
         if(tcp.sport == sender):
             if tcp.seq in seq_dict:
                 seq_dict[tcp.seq] += 1
@@ -186,7 +189,7 @@ for flow in ended_flows:
             else:
                 dup_dict[tcp.ack] = 1
     for key in dup_dict:
-        if dup_dict[key] >= 4:
+        if dup_dict[key] >= 3:
             fast_retransmission += 1
 
     timeout = retransmission - fast_retransmission
