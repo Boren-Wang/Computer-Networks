@@ -2,8 +2,8 @@ import dpkt.pcap
 import socket
 print("Enter the path of the pcap file to be parsed:")
 path = input()
-# f = open('assignment2.pcap', 'rb')
 f = open(path, 'rb')
+# f = open('assignment2.pcap', 'rb')
 pcap = dpkt.pcap.Reader(f)
 current_flows = {}
 ended_flows = []
@@ -65,14 +65,6 @@ for flow in ended_flows:
     for opt in opts:
         if opt[0] == dpkt.tcp.TCP_OPT_WSCALE:
             win_scale_factor = 2 ** (int.from_bytes(opt[1], "big"))
-        # elif opt[0] == dpkt.tcp.TCP_OPT_TIMESTAMP:
-        #     start_time = opt[1]
-
-    # end_time = 0
-    # opts = dpkt.tcp.parse_opts(flow[len(flow)-1].opts)
-    # for opt in opts:
-    #     if opt[0] == dpkt.tcp.TCP_OPT_TIMESTAMP:
-    #         end_time = opt[1]
 
     time = flow[len(flow)-2].ts - flow[0].ts
 
@@ -108,43 +100,6 @@ for flow in ended_flows:
                 print()
     print("The throughput for this TCP flow is " + str(throughput / time) + " bytes/sec")
 
-    # congestion window
-    # i = 1  # index for cwnd
-    # cwnd = 0
-    # next_cwnd = 0
-    # response_count = 0
-    # is_waiting_response = False
-    # timeout = 0
-    # max_seq = 0
-    # for index, tcp in enumerate(flow):
-    #     if index < 3:
-    #         continue
-    #     # if i==6:
-    #     #     break
-    #     if (tcp.sport == sender):  # sender -> receiver
-    #         if(is_waiting_response):
-    #             next_cwnd += 1
-    #         else:
-    #             cwnd += 1
-    #         if(tcp.seq >= max_seq):
-    #             max_seq = tcp.seq
-    #         else:
-    #             max_seq = tcp.seq
-    #             timeout+=1
-    #     else:
-    #         response_count += 1
-    #         is_waiting_response = True
-    #
-    #         if(response_count == cwnd+1):
-    #             if i<6:
-    #                 print("Congestion window No."+str(i)+" is "+str(cwnd))
-    #             # if cwnd == 10 and i>1:
-    #             #     timeout += 1
-    #             i += 1
-    #             cwnd = next_cwnd
-    #             next_cwnd = 0
-    #             response_count = 1
-    #             is_waiting_response = True
     rtt = round(flow[2].ts - flow[0].ts, 2)
     i = 1
     cwnd = 0
@@ -167,32 +122,28 @@ for flow in ended_flows:
 
     # retransmission
     retransmission = 0
+    timeout = 0
     seq_dict = {}
     for index, tcp in enumerate(flow):
         if index<3:
             continue
         if(tcp.sport == sender):
             if tcp.seq in seq_dict:
-                seq_dict[tcp.seq] += 1
+                seq_dict[tcp.seq].append(tcp)
             else:
-                seq_dict[tcp.seq] = 1
+                seq_dict[tcp.seq] = [tcp]
     for key in seq_dict:
-        if seq_dict[key] >= 2:
-            retransmission += (seq_dict[key] - 1)
+        if len(seq_dict[key]) >= 2:
+            retransmission += (len(seq_dict[key]) - 1)
+            repeated_tcps = seq_dict[key]
+            for i, t in enumerate(repeated_tcps):
+                if i==0:
+                    continue
+                if t.ts-repeated_tcps[i-1].ts >= 2*rtt:
+                    timeout += 1
 
-    fast_retransmission = 0
-    dup_dict = {}
-    for index, tcp in enumerate(flow):
-        if (tcp.dport == sender):
-            if tcp.ack in dup_dict:
-                dup_dict[tcp.ack] += 1
-            else:
-                dup_dict[tcp.ack] = 1
-    for key in dup_dict:
-        if dup_dict[key] >= 3:
-            fast_retransmission += 1
+    fast_retransmission = retransmission - timeout
 
-    timeout = retransmission - fast_retransmission
 
     print("The number of retransmission occured due to triple duplicate ack is "+str(fast_retransmission))
     print("The number of retransmission occured due to timeout is "+str(timeout))
